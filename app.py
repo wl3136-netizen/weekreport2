@@ -194,7 +194,7 @@ API_URL = _secret("APPS_SCRIPT_URL")
 API_TOKEN = _secret("API_TOKEN")
 
 
-def api(action: str, **payload):
+def api(action: str, timeout: int = 45, **payload):
     """Apps Script 웹앱을 호출합니다."""
     if not API_URL:
         raise ApiError(
@@ -204,7 +204,7 @@ def api(action: str, **payload):
         res = requests.post(
             API_URL,
             json={"token": API_TOKEN, "action": action, "payload": payload},
-            timeout=45,
+            timeout=timeout,
         )
         res.raise_for_status()
     except requests.RequestException as e:
@@ -1298,10 +1298,60 @@ def page_adm_report():
     with c6:
         csv_button(rows, f"주간보고_{wk}.csv", key="admreport")
 
+    ai_summary_section(text, wk)
+
     st.markdown("---")
     st.markdown(text)
     with st.expander("마크다운 원문 (복사용)"):
         st.code(text, language="markdown")
+
+
+AI_PROMPT = """당신은 팀의 주간업무 보고를 정리하는 실무 담당자입니다.
+아래 원본 보고 내용을 읽고 한국어로 다음 형식에 맞춰 요약하세요.
+
+## 이번 주 핵심
+- 가장 중요한 진행사항 3~5개를 한 줄씩
+
+## 주의가 필요한 사항
+- 지연·이슈·협조 요청을 한 줄씩. 없으면 "없음"이라고만 쓰세요.
+
+## 다음 주 초점
+- 다음 주에 집중할 일 2~4개를 한 줄씩
+
+규칙: 원본에 없는 내용을 지어내지 마세요. 담당자 이름은 필요할 때만 괄호로 덧붙이세요.
+전체 400자 이내로 간결하게 쓰세요.
+
+---- 원본 보고 ----
+"""
+
+
+def ai_summary_section(report_text: str, wk: str):
+    """Gemini 로 임원 보고용 요약을 만듭니다."""
+    st.markdown("##### AI 요약")
+    c1, c2 = st.columns([1, 3])
+    if c1.button("Gemini로 요약 만들기", type="primary", key=f"ai_{wk}"):
+        with st.spinner("Gemini에게 요청하는 중… 10~20초 걸립니다"):
+            try:
+                out = api("askGemini", timeout=120, prompt=AI_PROMPT + report_text)
+            except ApiError as e:
+                st.session_state.pop(f"aiout_{wk}", None)
+                st.error(str(e))
+            else:
+                st.session_state[f"aiout_{wk}"] = (out or {}).get("text", "")
+    c2.caption("이 주차 보고 내용을 Gemini에 보내 핵심·이슈·다음 주 초점으로 정리합니다.")
+
+    summary = st.session_state.get(f"aiout_{wk}")
+    if summary:
+        with st.container(border=True):
+            st.markdown(summary)
+        d1, d2 = st.columns([1, 3])
+        d1.download_button("요약 내려받기", data=summary.encode("utf-8"),
+                           file_name=f"주간보고_요약_{wk}.md", mime="text/markdown",
+                           key=f"aidl_{wk}")
+        if d2.button("요약 지우기", key=f"aiclr_{wk}"):
+            st.session_state.pop(f"aiout_{wk}", None)
+            st.rerun()
+        st.caption("AI가 만든 초안입니다. 보고 전에 내용을 확인하고 다듬어 주세요.")
 
 
 def page_adm_users():
@@ -1397,11 +1447,25 @@ def page_adm_data():
                        file_name="프로젝트목록.csv", mime="text/csv")
 
     st.markdown("##### 연결 상태")
-    if st.button("Apps Script 연결 확인"):
+    c1, c2 = st.columns(2)
+    if c1.button("Apps Script 연결 확인", width="stretch"):
         try:
             st.success(f"정상 연결됨 · {api('ping')}")
         except ApiError as e:
             st.error(str(e))
+    if c2.button("Gemini 연결 확인", width="stretch"):
+        with st.spinner("Gemini에 확인 요청 중…"):
+            try:
+                s = api("geminiStatus", timeout=120) or {}
+            except ApiError as e:
+                st.error(str(e))
+            else:
+                if s.get("ready"):
+                    st.success(f"Gemini 정상 · 모델 {s.get('model')}")
+                else:
+                    st.error(f"Gemini 사용 불가 · {s.get('reason')}")
+                    st.caption("Apps Script 프로젝트 설정 > 스크립트 속성에 "
+                               "GEMINI_API_KEY 를 등록했는지 확인하세요.")
     if st.button("스프레드시트 다시 읽기"):
         refresh()
         st.rerun()
