@@ -31,10 +31,48 @@ CSS = """
   --ink:#2f4858; --ink-soft:#eaf0f4; --moss:#3f7a56; --moss-soft:#e7f4ec;
   --amber:#a8720b; --amber-soft:#fbf1de; --rose:#a8434c; --rose-soft:#fbeaea;
   --line:#e7e9ec; --mute:#7c848c; --bg-card:#ffffff;
+  --side:#6799FF; --side-deep:#4f7fe6;
 }
 .block-container{padding-top:2rem;padding-bottom:3rem;max-width:1360px}
 h2, h3 { letter-spacing:-.01em; }
-[data-testid="stSidebar"]{border-right:1px solid var(--line)}
+
+/* ---------- 사이드바 톤 ---------- */
+[data-testid="stSidebar"]{
+  background-color:var(--side);border-right:none;
+}
+[data-testid="stSidebar"] > div:first-child{padding-top:1.2rem}
+[data-testid="stSidebar"] *{color:#ffffff}
+.side-brand{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
+.side-user{
+  background:rgba(255,255,255,.12);border-radius:10px;
+  padding:10px 12px;margin-bottom:6px;line-height:1.5;
+}
+.side-meta{font-size:12px;color:rgba(255,255,255,.75) !important;line-height:1.6}
+.navgroup{
+  font-size:11.5px;font-weight:800;letter-spacing:.06em;
+  color:rgba(255,255,255,.62) !important;margin:16px 2px 6px;
+}
+[data-testid="stSidebar"] .stButton>button{
+  border:none;text-align:left;justify-content:flex-start;
+  border-radius:8px;padding:7px 10px;font-weight:500;
+  box-shadow:none;
+}
+[data-testid="stSidebar"] .stButton>button[kind="secondary"]{
+  background:transparent;color:rgba(255,255,255,.88) !important;
+}
+[data-testid="stSidebar"] .stButton>button[kind="secondary"]:hover{
+  background:rgba(255,255,255,.14);color:#fff !important;
+}
+[data-testid="stSidebar"] .stButton>button[kind="primary"]{
+  background:rgba(255,255,255,.22) !important;color:#ffffff !important;
+  font-weight:700;box-shadow:inset 3px 0 0 #ffffff;
+}
+[data-testid="stSidebar"] .stButton>button[kind="primary"]:hover{
+  background:rgba(255,255,255,.28) !important;
+}
+[data-testid="stSidebar"] hr{border-color:rgba(255,255,255,.2)}
+
+/* ---------- 본문 공통 ---------- */
 .tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;
      font-weight:700;line-height:1.7;white-space:nowrap;letter-spacing:.01em}
 .tag-ink{background:var(--ink-soft);color:var(--ink)}
@@ -52,8 +90,11 @@ div[data-testid="stMetric"]{
   background:var(--bg-card);border:1px solid var(--line);border-radius:12px;
   padding:14px 16px 10px;
 }
-button[kind="primary"]{border-radius:8px}
-button[kind="secondary"]{border-radius:8px}
+.main .stButton>button[kind="primary"]{
+  background:var(--side);border-color:var(--side);border-radius:8px;
+}
+.main .stButton>button[kind="primary"]:hover{background:var(--side-deep)}
+.main .stButton>button[kind="secondary"]{border-radius:8px}
 [data-testid="stExpander"]{border-radius:10px;border:1px solid var(--line)}
 </style>
 """
@@ -794,7 +835,7 @@ def _project_form(p):
                             placeholder="선택 입력")
 
         if st.form_submit_button("변경사항 저장" if p else "프로젝트 추가",
-                                  type="primary", use_container_width=True):
+                                  type="primary", width="stretch"):
             run("saveProject",
                 "프로젝트를 수정했습니다." if p else "프로젝트를 추가했습니다.",
                 id=p["id"] if p else "", code=code, name=name, team=team, owner=owner,
@@ -810,7 +851,7 @@ def page_ref_proj():
     c1, c2, c3 = st.columns([2, 3, 2])
     fs = c1.selectbox("상태", ["전체"] + PSTATUS, label_visibility="collapsed")
     q = c2.text_input("검색", placeholder="🔍 프로젝트·담당·팀 검색", label_visibility="collapsed")
-    if c3.button("＋ 새 프로젝트 등록", type="primary", use_container_width=True):
+    if c3.button("＋ 새 프로젝트 등록", type="primary", width="stretch"):
         _dialog_add_project()
 
     rows = projects()
@@ -1329,10 +1370,16 @@ PAGES = {
     "adm-data": ("데이터 백업", page_adm_data),
 }
 
-NAV_USER = ["my-home", "my-input", "my-works", "ref-proj", "my-acc"]
-NAV_ADMIN = ["adm-week", "adm-proj", "adm-person", "adm-team", "adm-report",
-             "ref-proj", "adm-users", "adm-data",
-             "my-input", "my-works", "my-acc"]
+NAV_GROUPS_USER = [
+    ("내 업무", ["my-home", "my-input", "my-works"]),
+    ("기준 정보", ["ref-proj"]),
+    ("계정", ["my-acc"]),
+]
+NAV_GROUPS_ADMIN = [
+    ("모니터링", ["adm-week", "adm-proj", "adm-person", "adm-team", "adm-report"]),
+    ("기준 정보", ["ref-proj", "adm-users", "adm-data"]),
+    ("내 업무", ["my-input", "my-works", "my-acc"]),
+]
 
 
 NAV_ICONS = {
@@ -1344,6 +1391,23 @@ NAV_ICONS = {
 
 def nav_label(key: str) -> str:
     return f"{NAV_ICONS.get(key, '')}  {PAGES[key][0]}"
+
+
+def flat_nav(groups: list) -> list:
+    return [k for _, keys in groups for k in keys]
+
+
+def render_nav(groups: list) -> str:
+    """대분류(그룹) 아래 중분류(페이지) 버튼을 그립니다. 현재 선택된 페이지 key 를 돌려줍니다."""
+    for title, keys in groups:
+        st.sidebar.markdown(f"<div class='navgroup'>{esc(title)}</div>", unsafe_allow_html=True)
+        for k in keys:
+            active = st.session_state.get("nav_page") == k
+            if st.sidebar.button(nav_label(k), key=f"navbtn_{k}",
+                                 type="primary" if active else "secondary",
+                                 width="stretch"):
+                st.session_state["nav_page"] = k
+    return st.session_state.get("nav_page")
 
 
 def main():
@@ -1374,22 +1438,33 @@ def main():
     if msg := st.session_state.pop("_toast", None):
         st.toast(msg)
 
+    groups = NAV_GROUPS_ADMIN if is_admin() else NAV_GROUPS_USER
+    default = "adm-week" if is_admin() else "my-home"
+    if st.session_state.get("nav_page") not in flat_nav(groups):
+        st.session_state["nav_page"] = default
+
     with st.sidebar:
-        st.markdown(f"### {ME['name']}")
-        st.caption(f"{ME['team']} · {ME['empNo']} · "
-                   f"{'관리자' if is_admin() else '입력자'}")
-        nav = NAV_ADMIN if is_admin() else NAV_USER
-        default = "adm-week" if is_admin() else "my-home"
-        page = st.radio("메뉴", nav, index=nav.index(default), key="nav_menu",
-                        format_func=nav_label, label_visibility="collapsed")
-        st.markdown("---")
+        st.markdown(
+            "<div class='side-brand'>📋 주간업무 관리</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='side-user'><b>{esc(ME['name'])}</b><br>"
+                    f"<span class='side-meta'>{esc(ME['team'])} · {esc(ME['empNo'])} · "
+                    f"{'관리자' if is_admin() else '입력자'}</span></div>",
+                    unsafe_allow_html=True)
+
+        page = render_nav(groups)
+
+        st.markdown("<div class='navgroup' style='margin-top:22px'>&nbsp;</div>",
+                    unsafe_allow_html=True)
         wk = cur_week()
         mine_cnt = len([r for r in my_reports() if r["week"] == wk["key"]])
-        st.caption(f"{week_label(wk)}\n\n이번 주 내 작성 {mine_cnt}건")
-        if st.button("새로고침", width="stretch"):
+        st.markdown(
+            f"<div class='side-meta'>{esc(week_label(wk))}<br>이번 주 내 작성 {mine_cnt}건</div>",
+            unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        if c1.button("새로고침", width="stretch"):
             refresh()
             st.rerun()
-        if st.button("로그아웃", width="stretch"):
+        if c2.button("로그아웃", width="stretch"):
             st.session_state.clear()
             st.rerun()
 
