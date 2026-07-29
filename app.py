@@ -27,75 +27,127 @@ st.set_page_config(page_title="주간업무 관리", page_icon="📋", layout="w
 
 CSS = """
 <style>
-:root{
-  --ink:#2f4858; --ink-soft:#eaf0f4; --moss:#3f7a56; --moss-soft:#e7f4ec;
-  --amber:#a8720b; --amber-soft:#fbf1de; --rose:#a8434c; --rose-soft:#fbeaea;
-  --line:#e7e9ec; --mute:#7c848c; --bg-card:#ffffff;
-  --side:#6799FF; --side-deep:#4f7fe6;
-}
-.block-container{padding-top:2rem;padding-bottom:3rem;max-width:1360px}
-h2, h3 { letter-spacing:-.01em; }
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
-/* ---------- 사이드바 톤 ---------- */
+:root{
+  --blue:#0054FF; --blue-deep:#0042CC; --blue-tint:#EDF3FF;
+  --ink:#0B1526; --mute:#6B7684; --line:#E5E8EB; --bg:#F8F9FB;
+  --moss:#0F7B4F; --moss-soft:#E4F5EC;
+  --amber:#9A6B00; --amber-soft:#FDF2DC;
+  --rose:#C0303C; --rose-soft:#FDECEE;
+}
+
+html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"]{
+  font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+              system-ui, 'Malgun Gothic', sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+[data-testid="stAppViewContainer"]{background:var(--bg)}
+.block-container{padding-top:2.4rem;padding-bottom:4rem;max-width:1320px}
+h1,h2,h3,h4{letter-spacing:-.025em;color:var(--ink)}
+[data-testid="stHeader"]{background:transparent}
+
+/* ============ 사이드바 ============ */
 [data-testid="stSidebar"]{
-  background-color:var(--side);border-right:none;
+  background:linear-gradient(180deg, var(--blue) 0%, var(--blue-deep) 100%);
+  border-right:none;
 }
-[data-testid="stSidebar"] > div:first-child{padding-top:1.2rem}
-[data-testid="stSidebar"] *{color:#ffffff}
-.side-brand{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
-.side-user{
-  background:rgba(255,255,255,.12);border-radius:10px;
-  padding:10px 12px;margin-bottom:6px;line-height:1.5;
+[data-testid="stSidebar"] > div:first-child{padding-top:1.5rem}
+[data-testid="stSidebar"] *{color:#fff}
+
+/* Streamlit 기본 1rem 간격을 걷어내 항목을 촘촘하게 */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.15rem}
+[data-testid="stSidebar"] [data-testid="stElementContainer"]{margin:0}
+[data-testid="stSidebar"] .stButton{margin:0}
+
+.side-brand{
+  display:flex;align-items:center;gap:9px;
+  font-size:15px;font-weight:700;letter-spacing:-.02em;margin-bottom:18px;
 }
-.side-meta{font-size:12px;color:rgba(255,255,255,.75) !important;line-height:1.6}
+.side-brand i{
+  width:22px;height:22px;border-radius:6px;background:#fff;color:var(--blue);
+  font-style:normal;font-size:12px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.side-user{line-height:1.45;padding-bottom:14px;margin-bottom:2px;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+.side-user b{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.side-meta{font-size:11.5px;color:rgba(255,255,255,.62) !important;line-height:1.6}
+
 .navgroup{
-  font-size:11.5px;font-weight:800;letter-spacing:.06em;
-  color:rgba(255,255,255,.62) !important;margin:16px 2px 6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:rgba(255,255,255,.5) !important;
+  margin:18px 0 5px 2px;
 }
+.navgroup:first-of-type{margin-top:14px}
+
 [data-testid="stSidebar"] .stButton>button{
-  border:none;text-align:left;justify-content:flex-start;
-  border-radius:8px;padding:7px 10px;font-weight:500;
-  box-shadow:none;
+  border:none;box-shadow:none;
+  text-align:left;justify-content:flex-start;
+  border-radius:8px;padding:7px 11px;min-height:34px;
+  font-size:13.5px;font-weight:500;letter-spacing:-.01em;
+  transition:background .12s ease;
 }
 [data-testid="stSidebar"] .stButton>button[kind="secondary"]{
-  background:transparent;color:rgba(255,255,255,.88) !important;
+  background:transparent;color:rgba(255,255,255,.82) !important;
 }
 [data-testid="stSidebar"] .stButton>button[kind="secondary"]:hover{
-  background:rgba(255,255,255,.14);color:#fff !important;
+  background:rgba(255,255,255,.13);color:#fff !important;
 }
+/* 선택 상태 — 흰 알약 + 파란 글씨 */
 [data-testid="stSidebar"] .stButton>button[kind="primary"]{
-  background:rgba(255,255,255,.22) !important;color:#ffffff !important;
-  font-weight:700;box-shadow:inset 3px 0 0 #ffffff;
+  background:#fff !important;color:var(--blue) !important;
+  font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.10);
 }
 [data-testid="stSidebar"] .stButton>button[kind="primary"]:hover{
-  background:rgba(255,255,255,.28) !important;
+  background:#fff !important;color:var(--blue-deep) !important;
 }
-[data-testid="stSidebar"] hr{border-color:rgba(255,255,255,.2)}
+.side-foot{
+  margin-top:22px;padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.18);
+}
 
-/* ---------- 본문 공통 ---------- */
-.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;
-     font-weight:700;line-height:1.7;white-space:nowrap;letter-spacing:.01em}
-.tag-ink{background:var(--ink-soft);color:var(--ink)}
+/* ============ 본문 ============ */
+.pagehead{margin-bottom:20px}
+.pagehead h2{font-size:22px;font-weight:800;margin:0 0 3px}
+.pagehead p{font-size:13px;color:var(--mute);margin:0}
+
+.tag{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11.5px;
+     font-weight:700;line-height:1.75;white-space:nowrap;letter-spacing:-.01em}
+.tag-ink{background:var(--blue-tint);color:var(--blue)}
 .tag-moss{background:var(--moss-soft);color:var(--moss)}
 .tag-amber{background:var(--amber-soft);color:var(--amber)}
 .tag-rose{background:var(--rose-soft);color:var(--rose)}
-.tag-grey{background:#f1f2f3;color:var(--mute)}
-.chip{display:inline-block;padding:1px 8px;border:1px solid var(--line);border-radius:6px;
-      font-size:11px;color:var(--mute);font-family:ui-monospace,monospace;background:#fafbfc}
-.pre{white-space:pre-wrap;line-height:1.65}
+.tag-grey{background:#F2F4F6;color:var(--mute)}
+.chip{display:inline-block;padding:1px 7px;border-radius:5px;background:#F2F4F6;
+      font-size:11px;color:var(--mute);font-family:ui-monospace,monospace}
+.pre{white-space:pre-wrap;line-height:1.68;font-size:13.5px}
 .mute{color:var(--mute)}
-.rblock{border-left:3px solid var(--ink-soft);padding:4px 0 4px 14px;margin-bottom:14px}
-div[data-testid="stMetricValue"]{font-size:26px;font-weight:800;color:var(--ink)}
+.rblock{border-left:2px solid var(--line);padding:2px 0 2px 13px;margin-bottom:14px}
+
 div[data-testid="stMetric"]{
-  background:var(--bg-card);border:1px solid var(--line);border-radius:12px;
-  padding:14px 16px 10px;
+  background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px 12px;
 }
+div[data-testid="stMetricLabel"] p{font-size:12.5px;color:var(--mute);font-weight:600}
+div[data-testid="stMetricValue"]{font-size:25px;font-weight:800;color:var(--ink);
+  letter-spacing:-.03em}
+
+[data-testid="stVerticalBlockBorderWrapper"]{border-radius:14px}
+[data-testid="stExpander"]{border:1px solid var(--line);border-radius:12px;background:#fff}
+[data-testid="stExpander"] summary{font-size:13.5px;font-weight:600}
+[data-testid="stDataFrame"]{border-radius:10px}
+
+[data-testid="stMain"] .stButton>button[kind="primary"],
 .main .stButton>button[kind="primary"]{
-  background:var(--side);border-color:var(--side);border-radius:8px;
+  background:var(--blue);border-color:var(--blue);border-radius:8px;font-weight:600;
 }
-.main .stButton>button[kind="primary"]:hover{background:var(--side-deep)}
-.main .stButton>button[kind="secondary"]{border-radius:8px}
-[data-testid="stExpander"]{border-radius:10px;border:1px solid var(--line)}
+[data-testid="stMain"] .stButton>button[kind="primary"]:hover,
+.main .stButton>button[kind="primary"]:hover{
+  background:var(--blue-deep);border-color:var(--blue-deep);
+}
+[data-testid="stMain"] .stButton>button[kind="secondary"]{
+  border-radius:8px;border-color:var(--line);
+}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -308,6 +360,15 @@ def empty(big: str, sub: str = ""):
     st.info(f"**{big}**" + (f"\n\n{sub}" if sub else ""))
 
 
+def page_head(title: str, desc: str = ""):
+    st.markdown(
+        f"<div class='pagehead'><h2>{esc(title)}</h2>"
+        + (f"<p>{esc(desc)}</p>" if desc else "")
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 # ============================================================
 # 데이터 조회 헬퍼
 # ============================================================
@@ -499,8 +560,7 @@ def _signup_form(admin: bool):
 
 def page_my_home():
     wk = cur_week()
-    st.subheader("대시보드")
-    st.caption(f"{week_label(wk)} · 기준일 {fmt_md(wk['wed'])}(수)")
+    page_head("대시보드", f"{week_label(wk)} · 기준일 {fmt_md(wk['wed'])}(수)")
 
     mine = my_reports()
     this_wk = [r for r in mine if r["week"] == wk["key"]]
@@ -601,8 +661,7 @@ def edit_report_form(r: dict, key: str):
 
 
 def page_my_input():
-    st.subheader("주간업무 입력")
-    st.caption("프로젝트별로 금주 진행사항과 차주 계획을 작성합니다. "
+    page_head("주간업무 입력", "프로젝트별로 금주 진행사항과 차주 계획을 작성합니다. "
                "같은 프로젝트에 여러 명이 각자 입력할 수 있습니다.")
 
     wks = week_options(12, 1)
@@ -706,8 +765,7 @@ def page_my_input():
 
 
 def page_my_works():
-    st.subheader("내 진행사항 관리")
-    st.caption("내가 작성한 모든 주간업무를 한곳에서 확인하고 수정합니다.")
+    page_head("내 진행사항 관리", "내가 작성한 모든 주간업무를 한곳에서 확인하고 수정합니다.")
 
     rows = sorted(my_reports(), key=lambda r: (r["week"], r.get("updatedAt", "")), reverse=True)
     all_weeks = sorted({r["week"] for r in rows}, reverse=True)
@@ -761,8 +819,7 @@ def page_my_works():
 
 
 def page_my_acc():
-    st.subheader("내 정보")
-    st.caption("계정 정보와 비밀번호를 관리합니다.")
+    page_head("내 정보", "계정 정보와 비밀번호를 관리합니다.")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -845,8 +902,7 @@ def _project_form(p):
 
 def page_ref_proj():
     admin = is_admin()
-    st.subheader("프로젝트 목록")
-    st.caption("누구나 새 프로젝트를 등록할 수 있습니다. 기존 프로젝트 수정·삭제는 관리자만 할 수 있습니다.")
+    page_head("프로젝트 목록", "누구나 새 프로젝트를 등록할 수 있습니다. 기존 프로젝트 수정·삭제는 관리자만 할 수 있습니다.")
 
     c1, c2, c3 = st.columns([2, 3, 2])
     fs = c1.selectbox("상태", ["전체"] + PSTATUS, label_visibility="collapsed")
@@ -949,7 +1005,7 @@ def render_report_block(r: dict, show_user: bool = True):
 
 
 def page_adm_week():
-    st.subheader("금주 모니터링")
+    page_head("금주 모니터링")
     c1, c2 = st.columns([3, 3])
     with c1:
         wk = week_picker("조회 주차", "aw_week")
@@ -1038,8 +1094,7 @@ def page_adm_week():
 
 
 def page_adm_proj():
-    st.subheader("프로젝트별 모니터링")
-    st.caption("프로젝트 하나를 골라 주차별·담당자별 진행 이력을 추적합니다.")
+    page_head("프로젝트별 모니터링", "프로젝트 하나를 골라 주차별·담당자별 진행 이력을 추적합니다.")
 
     projs = sorted(projects(), key=lambda p: p["name"])
     if not projs:
@@ -1087,8 +1142,7 @@ def page_adm_proj():
 
 
 def page_adm_person():
-    st.subheader("사람별 모니터링")
-    st.caption("구성원별 제출 이력과 담당 프로젝트를 확인합니다.")
+    page_head("사람별 모니터링", "구성원별 제출 이력과 담당 프로젝트를 확인합니다.")
 
     us = sorted(users(), key=lambda u: (u.get("team", ""), u["name"]))
     uid = st.selectbox("구성원", [u["id"] for u in us],
@@ -1130,8 +1184,7 @@ def page_adm_person():
 
 
 def page_adm_team():
-    st.subheader("팀별 모니터링")
-    st.caption("팀 단위 제출률과 작성량을 비교합니다.")
+    page_head("팀별 모니터링", "팀 단위 제출률과 작성량을 비교합니다.")
     wk = week_picker("조회 주차", "aw_week")
 
     rows = reports_of_week(wk)
@@ -1166,8 +1219,7 @@ def page_adm_team():
 
 
 def page_adm_report():
-    st.subheader("보고서 취합")
-    st.caption("주차별 내용을 하나의 보고 문서로 묶습니다. 마크다운으로 내려받아 그대로 붙여넣을 수 있습니다.")
+    page_head("보고서 취합", "주차별 내용을 하나의 보고 문서로 묶습니다. 마크다운으로 내려받아 그대로 붙여넣을 수 있습니다.")
 
     c1, c2 = st.columns([3, 3])
     with c1:
@@ -1234,8 +1286,7 @@ def page_adm_report():
 
 
 def page_adm_users():
-    st.subheader("사용자 · 권한")
-    st.caption("가입된 구성원의 권한을 관리합니다. 비밀번호는 해시로만 저장되어 "
+    page_head("사용자 · 권한", "가입된 구성원의 권한을 관리합니다. 비밀번호는 해시로만 저장되어 "
                "평문 확인은 불가능하며, 필요 시 초기화할 수 있습니다.")
 
     wk = cur_week()["key"]
@@ -1303,8 +1354,7 @@ def page_adm_users():
 
 
 def page_adm_data():
-    st.subheader("데이터 백업")
-    st.caption("데이터는 구글 스프레드시트에 저장됩니다. 시트 자체가 원본이지만, "
+    page_head("데이터 백업", "데이터는 구글 스프레드시트에 저장됩니다. 시트 자체가 원본이지만, "
                "주기적으로 파일로도 내려받아 보관하세요.")
 
     d = db()
@@ -1382,15 +1432,8 @@ NAV_GROUPS_ADMIN = [
 ]
 
 
-NAV_ICONS = {
-    "my-home": "🏠", "my-input": "✎", "my-works": "☰", "ref-proj": "▤",
-    "my-acc": "⚙", "adm-week": "◎", "adm-proj": "▤", "adm-person": "☺",
-    "adm-team": "▦", "adm-report": "⎙", "adm-users": "👤", "adm-data": "⛁",
-}
-
-
 def nav_label(key: str) -> str:
-    return f"{NAV_ICONS.get(key, '')}  {PAGES[key][0]}"
+    return PAGES[key][0]
 
 
 def flat_nav(groups: list) -> list:
@@ -1407,6 +1450,7 @@ def render_nav(groups: list) -> str:
                                  type="primary" if active else "secondary",
                                  width="stretch"):
                 st.session_state["nav_page"] = k
+                st.rerun()
     return st.session_state.get("nav_page")
 
 
@@ -1444,21 +1488,22 @@ def main():
         st.session_state["nav_page"] = default
 
     with st.sidebar:
+        st.markdown("<div class='side-brand'><i>주</i>주간업무 관리</div>",
+                    unsafe_allow_html=True)
         st.markdown(
-            "<div class='side-brand'>📋 주간업무 관리</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='side-user'><b>{esc(ME['name'])}</b><br>"
-                    f"<span class='side-meta'>{esc(ME['team'])} · {esc(ME['empNo'])} · "
-                    f"{'관리자' if is_admin() else '입력자'}</span></div>",
-                    unsafe_allow_html=True)
+            f"<div class='side-user'><b>{esc(ME['name'])}</b>"
+            f"<div class='side-meta'>{esc(ME['team'])} · {esc(ME['empNo'])} · "
+            f"{'관리자' if is_admin() else '입력자'}</div></div>",
+            unsafe_allow_html=True)
 
-        page = render_nav(groups)
+    page = render_nav(groups)
 
-        st.markdown("<div class='navgroup' style='margin-top:22px'>&nbsp;</div>",
-                    unsafe_allow_html=True)
+    with st.sidebar:
         wk = cur_week()
         mine_cnt = len([r for r in my_reports() if r["week"] == wk["key"]])
         st.markdown(
-            f"<div class='side-meta'>{esc(week_label(wk))}<br>이번 주 내 작성 {mine_cnt}건</div>",
+            f"<div class='side-foot'><div class='side-meta'>{esc(week_label(wk))}<br>"
+            f"이번 주 내 작성 <b>{mine_cnt}</b>건</div></div>",
             unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         if c1.button("새로고침", width="stretch"):
