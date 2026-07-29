@@ -53,59 +53,78 @@ h1,h2,h3,h4{letter-spacing:-.025em;color:var(--ink)}
   border-right:none;
 }
 [data-testid="stSidebar"] > div:first-child{padding-top:1.5rem}
-[data-testid="stSidebar"] *{color:#fff}
+[data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,[data-testid="stSidebar"] .stMarkdown{color:#fff}
 
 /* Streamlit 기본 1rem 간격을 걷어내 항목을 촘촘하게 */
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.15rem}
-[data-testid="stSidebar"] [data-testid="stElementContainer"]{margin:0}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.2rem}
 [data-testid="stSidebar"] .stButton{margin:0}
 
 .side-brand{
-  display:flex;align-items:center;gap:9px;
-  font-size:15px;font-weight:700;letter-spacing:-.02em;margin-bottom:18px;
+  display:flex;align-items:center;gap:9px;color:#fff;
+  font-size:15px;font-weight:700;letter-spacing:-.02em;padding-bottom:18px;
 }
 .side-brand i{
   width:22px;height:22px;border-radius:6px;background:#fff;color:var(--blue);
   font-style:normal;font-size:12px;font-weight:800;
   display:flex;align-items:center;justify-content:center;flex:0 0 auto;
 }
-.side-user{line-height:1.45;padding-bottom:14px;margin-bottom:2px;
+.side-user{line-height:1.45;color:#fff;padding-bottom:14px;
   border-bottom:1px solid rgba(255,255,255,.18)}
 .side-user b{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
 .side-meta{font-size:11.5px;color:rgba(255,255,255,.62) !important;line-height:1.6}
 
+/* 그룹 라벨 — margin 은 Streamlit 이 지우므로 padding 으로 간격 확보 */
 .navgroup{
   font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
-  color:rgba(255,255,255,.5) !important;
-  margin:18px 0 5px 2px;
+  color:rgba(255,255,255,.55) !important;
+  padding:18px 0 6px 3px;line-height:1.2;
 }
-.navgroup:first-of-type{margin-top:14px}
 
 [data-testid="stSidebar"] .stButton>button{
-  border:none;box-shadow:none;
-  text-align:left;justify-content:flex-start;
+  border:none;box-shadow:none;background:transparent;
   border-radius:8px;padding:7px 11px;min-height:34px;
+  display:flex;justify-content:flex-start;
   font-size:13.5px;font-weight:500;letter-spacing:-.01em;
   transition:background .12s ease;
 }
+/* 버튼 라벨은 실제로 내부 <p> 에 들어가므로 색·정렬을 여기서 잡아준다 */
+[data-testid="stSidebar"] .stButton>button p,
+[data-testid="stSidebar"] .stButton>button div,
+[data-testid="stSidebar"] .stButton>button span{
+  color:inherit !important;text-align:left;width:100%;margin:0;
+  font-size:inherit;font-weight:inherit;
+}
 [data-testid="stSidebar"] .stButton>button[kind="secondary"]{
-  background:transparent;color:rgba(255,255,255,.82) !important;
+  color:rgba(255,255,255,.82) !important;
 }
 [data-testid="stSidebar"] .stButton>button[kind="secondary"]:hover{
   background:rgba(255,255,255,.13);color:#fff !important;
 }
 /* 선택 상태 — 흰 알약 + 파란 글씨 */
+[data-testid="stSidebar"] .stButton>button[kind="primary"],
+[data-testid="stSidebar"] .stButton>button[kind="primary"] p,
+[data-testid="stSidebar"] .stButton>button[kind="primary"] div,
+[data-testid="stSidebar"] .stButton>button[kind="primary"] span{
+  color:var(--blue) !important;
+}
 [data-testid="stSidebar"] .stButton>button[kind="primary"]{
-  background:#fff !important;color:var(--blue) !important;
-  font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.10);
+  background:#fff !important;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.10);
 }
 [data-testid="stSidebar"] .stButton>button[kind="primary"]:hover{
-  background:#fff !important;color:var(--blue-deep) !important;
+  background:#fff !important;
 }
 .side-foot{
-  margin-top:22px;padding-top:14px;
+  color:#fff;margin-top:20px;padding-top:14px;
   border-top:1px solid rgba(255,255,255,.18);
 }
+/* 하단 새로고침·로그아웃 — 윤곽선을 줘서 버튼으로 읽히게 */
+[data-testid="stSidebar"] [data-testid="stColumn"] .stButton>button{
+  border:1px solid rgba(255,255,255,.35);justify-content:center;
+  font-size:12.5px;min-height:32px;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"] .stButton>button p{text-align:center}
 
 /* ============ 본문 ============ */
 .pagehead{margin-bottom:20px}
