@@ -28,24 +28,33 @@ st.set_page_config(page_title="주간업무 관리", page_icon="📋", layout="w
 CSS = """
 <style>
 :root{
-  --ink:#2f4858; --ink-soft:#eef3f6; --moss:#4a7c59; --moss-soft:#eaf3ec;
-  --amber:#b8860b; --amber-soft:#fbf3e0; --rose:#a8464f; --rose-soft:#fbecec;
-  --line:#e4e6e8; --mute:#7a838a;
+  --ink:#2f4858; --ink-soft:#eaf0f4; --moss:#3f7a56; --moss-soft:#e7f4ec;
+  --amber:#a8720b; --amber-soft:#fbf1de; --rose:#a8434c; --rose-soft:#fbeaea;
+  --line:#e7e9ec; --mute:#7c848c; --bg-card:#ffffff;
 }
-.block-container{padding-top:2.2rem;max-width:1400px}
-.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;
-     font-weight:700;line-height:1.7;white-space:nowrap}
+.block-container{padding-top:2rem;padding-bottom:3rem;max-width:1360px}
+h2, h3 { letter-spacing:-.01em; }
+[data-testid="stSidebar"]{border-right:1px solid var(--line)}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;
+     font-weight:700;line-height:1.7;white-space:nowrap;letter-spacing:.01em}
 .tag-ink{background:var(--ink-soft);color:var(--ink)}
 .tag-moss{background:var(--moss-soft);color:var(--moss)}
 .tag-amber{background:var(--amber-soft);color:var(--amber)}
 .tag-rose{background:var(--rose-soft);color:var(--rose)}
 .tag-grey{background:#f1f2f3;color:var(--mute)}
-.chip{display:inline-block;padding:1px 7px;border:1px solid var(--line);border-radius:5px;
-      font-size:11px;color:var(--mute);font-family:ui-monospace,monospace}
-.pre{white-space:pre-wrap;line-height:1.6}
+.chip{display:inline-block;padding:1px 8px;border:1px solid var(--line);border-radius:6px;
+      font-size:11px;color:var(--mute);font-family:ui-monospace,monospace;background:#fafbfc}
+.pre{white-space:pre-wrap;line-height:1.65}
 .mute{color:var(--mute)}
-.rblock{border-left:2px solid var(--line);padding:2px 0 2px 12px;margin-bottom:12px}
-div[data-testid="stMetricValue"]{font-size:28px}
+.rblock{border-left:3px solid var(--ink-soft);padding:4px 0 4px 14px;margin-bottom:14px}
+div[data-testid="stMetricValue"]{font-size:26px;font-weight:800;color:var(--ink)}
+div[data-testid="stMetric"]{
+  background:var(--bg-card);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px 10px;
+}
+button[kind="primary"]{border-radius:8px}
+button[kind="secondary"]{border-radius:8px}
+[data-testid="stExpander"]{border-radius:10px;border:1px solid var(--line)}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -569,9 +578,7 @@ def page_my_input():
 
     projs = sort_projects(projects())
     if not projs:
-        empty("등록된 프로젝트가 없습니다",
-              "기준 정보 > 프로젝트 관리에서 먼저 추가하세요." if is_admin()
-              else "관리자에게 프로젝트 등록을 요청하세요.")
+        empty("등록된 프로젝트가 없습니다", "‘프로젝트 목록’ 메뉴에서 먼저 추가하세요.")
         return
 
     prev_key = None
@@ -755,55 +762,19 @@ def page_my_acc():
 # 페이지 — 기준 정보
 # ============================================================
 
-def page_ref_proj():
-    admin = is_admin()
-    st.subheader("프로젝트 관리" if admin else "프로젝트 목록")
-    st.caption("기준 정보입니다. 추가·수정하면 모든 입력자의 입력 화면에 반영됩니다."
-               if admin else "관리자가 등록한 프로젝트 목록입니다.")
+@st.dialog("프로젝트 추가")
+def _dialog_add_project():
+    _project_form(None)
 
-    c1, c2 = st.columns([3, 3])
-    fs = c1.radio("상태", ["전체"] + PSTATUS, horizontal=True, label_visibility="collapsed")
-    q = c2.text_input("검색", placeholder="프로젝트·담당·팀 검색", label_visibility="collapsed")
 
-    rows = projects()
-    if fs != "전체":
-        rows = [p for p in rows if p["status"] == fs]
-    if q:
-        ql = q.lower()
-        rows = [p for p in rows
-                if ql in (p["name"] + p["code"] + p.get("owner", "") + p.get("team", "")).lower()]
-    rows = sort_projects(rows)
+@st.dialog("프로젝트 수정")
+def _dialog_edit_project(p: dict):
+    _project_form(p)
 
-    wk = cur_week()["key"]
-    if rows:
-        st.dataframe(
-            pd.DataFrame([{
-                "코드": p["code"], "프로젝트명": p["name"], "주관팀": p.get("team", ""),
-                "PM": p.get("owner", ""), "상태": p["status"],
-                "시작일": p.get("startDate", ""), "완료 예정일": p["dueDate"],
-                "잔여": (lambda d: "-" if d is None else
-                        (f"지연 {-d}일" if d < 0 else f"D-{d}"))(dday(p["dueDate"])),
-                "이번 주 입력": f"{len([r for r in reports() if r['week'] == wk and r['projectId'] == p['id']])}명",
-            } for p in rows]),
-            hide_index=True, width="stretch",
-        )
-        st.caption(f"{len(rows)} / {len(projects())}개")
-    else:
-        empty("프로젝트가 없습니다",
-              "아래에서 첫 프로젝트를 등록하세요." if admin else "관리자에게 등록을 요청하세요.")
 
-    if not admin:
-        return
-
-    st.markdown("---")
-    target = st.selectbox(
-        "편집할 프로젝트", ["__new__"] + [p["id"] for p in sort_projects(projects())],
-        format_func=lambda x: "＋ 새 프로젝트 추가" if x == "__new__"
-        else f"{proj_code(x)} · {proj_name(x)}",
-    )
-    p = proj_by_id(target) if target != "__new__" else None
-
-    with st.form("projform"):
+def _project_form(p):
+    """프로젝트 추가·수정 다이얼로그 내용. p 가 None 이면 추가 모드."""
+    with st.form(f"projform_{p['id'] if p else 'new'}"):
         c1, c2 = st.columns(2)
         code = c1.text_input("프로젝트 코드 *", value=p["code"] if p else "",
                              placeholder="예: PRJ-2026-01")
@@ -819,28 +790,81 @@ def page_ref_proj():
                            value=parse_date(p.get("startDate")) if p and p.get("startDate") else date.today())
         dd = c6.date_input("완료 예정일 *",
                            value=parse_date(p["dueDate"]) if p and p.get("dueDate") else date.today())
-        desc = st.text_area("설명", value=p.get("desc", "") if p else "", height=80)
+        desc = st.text_area("설명", value=p.get("desc", "") if p else "", height=80,
+                            placeholder="선택 입력")
 
-        b1, b2 = st.columns([1, 5])
-        if b1.form_submit_button("저장" if p else "프로젝트 추가", type="primary"):
+        if st.form_submit_button("변경사항 저장" if p else "프로젝트 추가",
+                                  type="primary", use_container_width=True):
             run("saveProject",
                 "프로젝트를 수정했습니다." if p else "프로젝트를 추가했습니다.",
                 id=p["id"] if p else "", code=code, name=name, team=team, owner=owner,
-                status=status, startDate=sd.isoformat(), dueDate=dd.isoformat(), desc=desc)
-        if p and b2.form_submit_button("삭제"):
-            st.session_state["delproj"] = p["id"]
+                status=status, startDate=sd.isoformat(), dueDate=dd.isoformat(), desc=desc,
+                actorId=ME["id"], actorRole=ME["role"])
 
-    if p and st.session_state.get("delproj") == p["id"]:
-        n = len([r for r in reports() if r["projectId"] == p["id"]])
-        st.warning(f"‘{p['name']}’ 프로젝트를 삭제할까요?"
-                   + (f" 연결된 주간업무 {n}건도 함께 삭제됩니다." if n else ""))
-        d1, d2 = st.columns([1, 6])
-        if d1.button("삭제 확정", type="primary"):
-            st.session_state.pop("delproj", None)
-            run("deleteProject", "삭제되었습니다.", projectId=p["id"])
-        if d2.button("취소"):
-            st.session_state.pop("delproj", None)
-            st.rerun()
+
+def page_ref_proj():
+    admin = is_admin()
+    st.subheader("프로젝트 목록")
+    st.caption("누구나 새 프로젝트를 등록할 수 있습니다. 기존 프로젝트 수정·삭제는 관리자만 할 수 있습니다.")
+
+    c1, c2, c3 = st.columns([2, 3, 2])
+    fs = c1.selectbox("상태", ["전체"] + PSTATUS, label_visibility="collapsed")
+    q = c2.text_input("검색", placeholder="🔍 프로젝트·담당·팀 검색", label_visibility="collapsed")
+    if c3.button("＋ 새 프로젝트 등록", type="primary", use_container_width=True):
+        _dialog_add_project()
+
+    rows = projects()
+    if fs != "전체":
+        rows = [p for p in rows if p["status"] == fs]
+    if q:
+        ql = q.lower()
+        rows = [p for p in rows
+                if ql in (p["name"] + p["code"] + p.get("owner", "") + p.get("team", "")).lower()]
+    rows = sort_projects(rows)
+
+    if not rows:
+        empty("표시할 프로젝트가 없습니다",
+              "필터를 바꾸거나 ‘＋ 새 프로젝트 등록’으로 첫 프로젝트를 만들어 보세요.")
+        return
+
+    st.caption(f"{len(rows)} / {len(projects())}개")
+    wk = cur_week()["key"]
+
+    for p in rows:
+        n_input = len([r for r in reports() if r["week"] == wk and r["projectId"] == p["id"]])
+        with st.container(border=True):
+            widths = [5, 2, 2, 2] + ([2] if admin else [])
+            top = st.columns(widths)
+            top[0].markdown(
+                f"**{esc(p['name'])}** <span class='chip'>{esc(p['code'])}</span>",
+                unsafe_allow_html=True)
+            top[0].caption(p.get("desc") or "—")
+            top[1].markdown(status_tag(p["status"]) + " " + dday_tag(p["dueDate"], p["status"]),
+                            unsafe_allow_html=True)
+            top[1].caption(f"완료 예정 {fmt_full(p['dueDate'])}")
+            top[2].markdown(f"**{esc(p.get('team') or '-')}**")
+            top[2].caption(f"PM {esc(p.get('owner') or '-')}")
+            top[3].markdown(tag(f"이번 주 {n_input}명", "moss" if n_input else "grey"),
+                            unsafe_allow_html=True)
+            if admin:
+                with top[4]:
+                    bcol1, bcol2 = st.columns(2)
+                    if bcol1.button("✎", key=f"editp_{p['id']}", help="수정"):
+                        _dialog_edit_project(p)
+                    if bcol2.button("🗑", key=f"delp_{p['id']}", help="삭제"):
+                        st.session_state["delproj"] = p["id"]
+
+        if admin and st.session_state.get("delproj") == p["id"]:
+            n = len([r for r in reports() if r["projectId"] == p["id"]])
+            st.warning(f"‘{p['name']}’ 프로젝트를 삭제할까요?"
+                       + (f" 연결된 주간업무 {n}건도 함께 삭제됩니다." if n else ""))
+            d1, d2 = st.columns([1, 6])
+            if d1.button("삭제 확정", type="primary", key=f"delok_{p['id']}"):
+                st.session_state.pop("delproj", None)
+                run("deleteProject", "삭제되었습니다.", projectId=p["id"], actorRole=ME["role"])
+            if d2.button("취소", key=f"delno_{p['id']}"):
+                st.session_state.pop("delproj", None)
+                st.rerun()
 
 
 # ============================================================
@@ -1311,10 +1335,15 @@ NAV_ADMIN = ["adm-week", "adm-proj", "adm-person", "adm-team", "adm-report",
              "my-input", "my-works", "my-acc"]
 
 
+NAV_ICONS = {
+    "my-home": "🏠", "my-input": "✎", "my-works": "☰", "ref-proj": "▤",
+    "my-acc": "⚙", "adm-week": "◎", "adm-proj": "▤", "adm-person": "☺",
+    "adm-team": "▦", "adm-report": "⎙", "adm-users": "👤", "adm-data": "⛁",
+}
+
+
 def nav_label(key: str) -> str:
-    if key == "ref-proj" and is_admin():
-        return "프로젝트 관리"
-    return PAGES[key][0]
+    return f"{NAV_ICONS.get(key, '')}  {PAGES[key][0]}"
 
 
 def main():
