@@ -923,6 +923,118 @@ def _project_form(p):
                 actorId=ME["id"], actorRole=ME["role"])
 
 
+PROJ_AI_PROMPT = """당신은 프로젝트 진행 상황을 정리하는 실무 담당자입니다.
+아래는 한 프로젝트에 대해 담당자들이 주차별로 올린 주간업무 기록입니다.
+이를 읽고 한국어로 다음 형식에 맞춰 정리하세요.
+
+## 한 줄 요약
+- 이 기간 동안 프로젝트가 어디까지 왔는지 한 문장으로
+
+## 주요 진행 경과
+- 시간 순으로 의미 있는 진척을 3~6개, 한 줄씩
+
+## 이슈 및 리스크
+- 제기된 이슈, 지연 요인, 협조 요청을 한 줄씩. 없으면 "없음"이라고만 쓰세요.
+
+## 다음 단계
+- 기록상 예정된 다음 작업을 2~4개, 한 줄씩
+
+규칙: 기록에 없는 내용을 지어내지 마세요. 담당자가 여러 명이면 필요할 때만 이름을 괄호로 덧붙이세요.
+전체 500자 이내로 간결하게 쓰세요.
+
+---- 프로젝트 기록 ----
+"""
+
+
+def _project_summary_panel(p: dict):
+    """프로젝트 카드 아래에 펼쳐지는 AI 요약 패널."""
+    with st.container(border=True):
+        h1, h2 = st.columns([6, 1])
+        h1.markdown(
+            f"**AI 요약** · {esc(p['name'])} "
+            f"<span class='chip'>{esc(p['code'])}</span>",
+            unsafe_allow_html=True)
+        if h2.button("닫기", key=f"sumclose_{p['id']}", width="stretch"):
+            st.session_state.pop("sumproj", None)
+            st.rerun()
+
+        rows_all = sorted([r for r in reports() if r["projectId"] == p["id"]],
+                          key=lambda r: r["week"])
+        if not rows_all:
+            st.info("이 프로젝트에 등록된 주간업무가 아직 없습니다.")
+            return
+
+        weeks = sorted({r["week"] for r in rows_all})
+        mode = st.radio("기간", ["최근 4주", "최근 8주", "전체 기간", "직접 선택"],
+                        horizontal=True, key=f"psm_{p['id']}")
+
+        if mode == "직접 선택":
+            c1, c2 = st.columns(2)
+            w_from = c1.selectbox("시작 주차", weeks, index=0, key=f"pwf_{p['id']}")
+            w_to = c2.selectbox("종료 주차", weeks, index=len(weeks) - 1, key=f"pwt_{p['id']}")
+            if w_from > w_to:
+                w_from, w_to = w_to, w_from
+            rows = [r for r in rows_all if w_from <= r["week"] <= w_to]
+            span = f"{w_from} ~ {w_to}"
+        elif mode == "전체 기간":
+            rows = rows_all
+            span = f"{weeks[0]} ~ {weeks[-1]}"
+        else:
+            n = 4 if mode == "최근 4주" else 8
+            recent = {w["key"] for w in week_options(n - 1, 0)}
+            rows = [r for r in rows_all if r["week"] in recent]
+            span = mode
+
+        if not rows:
+            st.warning("선택한 기간에 등록된 주간업무가 없습니다. 기간을 넓혀보세요.")
+            return
+
+        st.caption(f"{span} · 기록 {len(rows)}건 · 참여 {len({r['userId'] for r in rows})}명")
+
+        lines = [
+            f"프로젝트명: {p['name']} ({p['code']})",
+            f"상태: {p['status']} · 주관 {p.get('team') or '-'} · PM {p.get('owner') or '-'}",
+            f"완료 예정일: {p.get('dueDate') or '-'}",
+            f"대상 기간: {span}",
+            "",
+        ]
+        for wk in sorted({r["week"] for r in rows}):
+            lines.append(f"[{wk}]")
+            for r in [x for x in rows if x["week"] == wk]:
+                pg = to_int(r.get("progress"))
+                lines.append(f"- 담당: {user_name(r['userId'])}"
+                             + (f" (진척률 {pg}%)" if pg is not None else ""))
+                lines.append(f"  금주: {r['thisWeek']}")
+                lines.append(f"  차주: {r['nextWeek']}")
+                if r.get("issue"):
+                    lines.append(f"  이슈: {r['issue']}")
+            lines.append("")
+        body = "\n".join(lines)
+
+        skey = f"psum_{p['id']}"
+        if st.button("Gemini로 요약 만들기", type="primary", key=f"psumbtn_{p['id']}"):
+            with st.spinner("Gemini에게 요청하는 중… 10~20초 걸립니다"):
+                try:
+                    out = api("askGemini", timeout=120, prompt=PROJ_AI_PROMPT + body)
+                except ApiError as e:
+                    st.session_state.pop(skey, None)
+                    st.error(str(e))
+                else:
+                    st.session_state[skey] = {"span": span, "text": (out or {}).get("text", "")}
+
+        saved = st.session_state.get(skey)
+        if saved and saved.get("text"):
+            st.markdown(saved["text"])
+            st.download_button(
+                "요약 내려받기", data=saved["text"].encode("utf-8"),
+                file_name=f"프로젝트요약_{p['code']}.md",
+                mime="text/markdown", key=f"psumdl_{p['id']}")
+            st.caption("AI가 만든 초안입니다. 공유 전에 내용을 확인해 주세요.")
+
+        with st.expander("요약에 사용되는 원문 보기"):
+            st.code(body)
+
+
 def page_ref_proj():
     admin = is_admin()
     page_head("프로젝트 목록", "누구나 새 프로젝트를 등록할 수 있습니다. 기존 프로젝트 수정·삭제는 관리자만 할 수 있습니다.")
@@ -953,7 +1065,7 @@ def page_ref_proj():
     for p in rows:
         n_input = len([r for r in reports() if r["week"] == wk and r["projectId"] == p["id"]])
         with st.container(border=True):
-            widths = [5, 2, 2, 2] + ([2] if admin else [])
+            widths = [5, 2, 2, 2, 2] + ([2] if admin else [])
             top = st.columns(widths)
             top[0].markdown(
                 f"**{esc(p['name'])}** <span class='chip'>{esc(p['code'])}</span>",
@@ -966,13 +1078,22 @@ def page_ref_proj():
             top[2].caption(f"PM {esc(p.get('owner') or '-')}")
             top[3].markdown(tag(f"이번 주 {n_input}명", "moss" if n_input else "grey"),
                             unsafe_allow_html=True)
+            with top[4]:
+                if st.button("AI 요약", key=f"sum_{p['id']}", width="stretch",
+                             help="이 프로젝트의 주간업무를 기간별로 요약합니다"):
+                    st.session_state["sumproj"] = (
+                        None if st.session_state.get("sumproj") == p["id"] else p["id"])
+                    st.rerun()
             if admin:
-                with top[4]:
+                with top[5]:
                     bcol1, bcol2 = st.columns(2)
                     if bcol1.button("✎", key=f"editp_{p['id']}", help="수정"):
                         _dialog_edit_project(p)
                     if bcol2.button("🗑", key=f"delp_{p['id']}", help="삭제"):
                         st.session_state["delproj"] = p["id"]
+
+        if st.session_state.get("sumproj") == p["id"]:
+            _project_summary_panel(p)
 
         if admin and st.session_state.get("delproj") == p["id"]:
             n = len([r for r in reports() if r["projectId"] == p["id"]])
