@@ -58,8 +58,13 @@ h1,h2,h3,h4{letter-spacing:-.025em;color:var(--ink)}
 [data-testid="stSidebar"] label,[data-testid="stSidebar"] .stMarkdown{color:#fff}
 
 /* Streamlit 기본 1rem 간격을 걷어내 항목을 촘촘하게 */
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.2rem}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.3rem}
 [data-testid="stSidebar"] .stButton{margin:0}
+/* 마크다운 컨테이너가 내용 높이보다 작게 잡히는 것을 막는다 */
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"]{
+  height:auto;overflow:visible;
+}
 
 .side-brand{
   display:flex;align-items:center;gap:9px;color:#fff;
@@ -75,11 +80,10 @@ h1,h2,h3,h4{letter-spacing:-.025em;color:var(--ink)}
 .side-user b{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
 .side-meta{font-size:11.5px;color:rgba(255,255,255,.62) !important;line-height:1.6}
 
-/* 그룹 라벨 — margin 은 Streamlit 이 지우므로 padding 으로 간격 확보 */
+/* 그룹 라벨 — 실제 간격은 render_nav 의 인라인 스타일에서 지정 */
 .navgroup{
   font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
   color:rgba(255,255,255,.55) !important;
-  padding:18px 0 6px 3px;line-height:1.2;
 }
 
 [data-testid="stSidebar"] .stButton>button{
@@ -1525,8 +1529,13 @@ def flat_nav(groups: list) -> list:
 
 def render_nav(groups: list) -> str:
     """대분류(그룹) 아래 중분류(페이지) 버튼을 그립니다. 현재 선택된 페이지 key 를 돌려줍니다."""
-    for title, keys in groups:
-        st.sidebar.markdown(f"<div class='navgroup'>{esc(title)}</div>", unsafe_allow_html=True)
+    for i, (title, keys) in enumerate(groups):
+        # Streamlit 이 내부 여백을 눌러버리므로 인라인 스타일로 고정합니다.
+        sep = "" if i == 0 else "border-top:1px solid rgba(255,255,255,.16);margin-top:6px;"
+        st.sidebar.markdown(
+            f"<div class='navgroup' style='{sep}padding:22px 0 11px 3px;"
+            f"line-height:15px;display:block;'>{esc(title)}</div>",
+            unsafe_allow_html=True)
         for k in keys:
             active = st.session_state.get("nav_page") == k
             if st.sidebar.button(nav_label(k), key=f"navbtn_{k}",
@@ -1571,11 +1580,16 @@ def main():
         st.session_state["nav_page"] = default
 
     with st.sidebar:
-        st.markdown("<div class='side-brand'><i>주</i>주간업무 관리</div>",
-                    unsafe_allow_html=True)
         st.markdown(
-            f"<div class='side-user'><b>{esc(ME['name'])}</b>"
-            f"<div class='side-meta'>{esc(ME['team'])} · {esc(ME['empNo'])} · "
+            "<div class='side-brand' style='padding:0 0 18px;display:flex;'>"
+            "<i>주</i>주간업무 관리</div>",
+            unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='side-user' style='padding:0 0 15px;display:block;line-height:1.45;"
+            f"border-bottom:1px solid rgba(255,255,255,.18);'>"
+            f"<b>{esc(ME['name'])}</b>"
+            f"<div class='side-meta' style='line-height:1.6;display:block;'>"
+            f"{esc(ME['team'])} · {esc(ME['empNo'])} · "
             f"{'관리자' if is_admin() else '입력자'}</div></div>",
             unsafe_allow_html=True)
 
@@ -1585,8 +1599,10 @@ def main():
         wk = cur_week()
         mine_cnt = len([r for r in my_reports() if r["week"] == wk["key"]])
         st.markdown(
-            f"<div class='side-foot'><div class='side-meta'>{esc(week_label(wk))}<br>"
-            f"이번 주 내 작성 <b>{mine_cnt}</b>건</div></div>",
+            "<div class='side-foot' style='margin-top:22px;padding:14px 0 14px;"
+            "border-top:1px solid rgba(255,255,255,.18);display:block;'>"
+            f"<div class='side-meta' style='line-height:1.7;display:block;'>"
+            f"{esc(week_label(wk))}<br>이번 주 내 작성 <b>{mine_cnt}</b>건</div></div>",
             unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         if c1.button("새로고침", width="stretch"):
